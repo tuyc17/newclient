@@ -1,0 +1,11 @@
+﻿  Assembling Client.asm...
+Client.asm(155): warning A5000: @@: label defined but not referenced
+Client.asm(229): warning A6004: procedure argument or local not referenced : id
+Client.asm(246): warning A6004: procedure argument or local not referenced : id
+Client.asm(342): warning A6004: procedure argument or local not referenced : id
+Client.asm(374): warning A6004: procedure argument or local not referenced : hisid
+Client.asm(380): warning A6004: procedure argument or local not referenced : myname
+Client.asm(485): warning A6004: procedure argument or local not referenced : @dwRecv
+Client.asm(485): warning A6004: procedure argument or local not referenced : @command
+Client.asm(714): warning A6004: procedure argument or local not referenced : @temponname
+  Client.vcxproj -> C:\Users\t2017\Documents\WeChat Files\A_qmx2017\FileStorage\File\2019-11\Client - merge\Client - 副本\Debug\Client.exe

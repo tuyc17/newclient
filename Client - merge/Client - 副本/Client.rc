@@ -1,0 +1,157 @@
+// Microsoft Visual C++ generated resource script.
+//
+#pragma code_page(65001)
+
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE
+BEGIN
+"resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+"#include ""winres.h""\r\n"
+"\0"
+END
+
+3 TEXTINCLUDE
+BEGIN
+"\r\n"
+"\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+ICO_MAIN                ICON                    "Main.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+DLG_MAIN DIALOG 100, 90, 461, 309
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "eChat聊天客户端"
+FONT 9, "宋体"
+BEGIN
+	LISTBOX         IDC_FRIENDLIST, 18, 45, 124, 232, LBS_SORT | LBS_HASSTRINGS | WS_TABSTOP
+	PUSHBUTTON		"添加好友",IDADDFRIEND, 18, 283, 56,14
+    LTEXT           "服务器IP地址：",-1,6,6,57,8
+    EDITTEXT        IDC_SERVER,63,4,77,12
+	PUSHBUTTON      "重命名", IDRENAME, 390, 6, 56, 14
+	EDITTEXT        IDC_NICKNAME, 158, 6, 77, 12, ES_READONLY
+	EDITTEXT		IDC_NEWNAME, 310, 6, 77, 12
+	LTEXT           "历史消息", -1, 157, 31, 45, 8
+    EDITTEXT        IDC_INFO,157,44,300,125, ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
+    LTEXT           "输入",-1,157,175,19,8
+    EDITTEXT        IDC_TEXT,157,190,300,87, ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL
+    DEFPUSHBUTTON   "发送(&S)",IDOK,390,283,56,14
+END
+
+DLG_LOGIN DIALOGEX 100, 90, 310, 177
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "请登录"
+FONT 9, "宋体", 0, 0, 0x1
+BEGIN
+    LTEXT           "用户名",-1,55,37,36,8
+    EDITTEXT        IDC_USERNAME,121,35,77,12
+	LTEXT			"密码",-1,55,60,36,8
+	EDITTEXT		IDC_PASSWORD,121,58,77,12
+    DEFPUSHBUTTON   "登录",IDLOGIN,52,140,50,14
+    PUSHBUTTON      "注册",IDLOGON,197,140,50,14
+END
+
+DLG_LOGON DIALOGEX 100, 90, 310, 177
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "注册"
+FONT 9, "宋体", 0, 0, 0x1
+BEGIN
+//LTEXT           "新的用户名", -1, 55, 37, 36, 8
+//EDITTEXT        IDC_ONNAME, 121, 35, 77, 12
+LTEXT			"新的密码", -1, 55, 60, 36, 8
+EDITTEXT		IDC_ONPASS, 121, 58, 77, 12
+DEFPUSHBUTTON   "确定", IDSURE, 52, 140, 50, 14
+PUSHBUTTON      "返回", IDBACK, 197, 140, 50, 14
+END
+
+//
+///////////////////////////////////////////////////////////////////////////////
+////
+//// DESIGNINFO
+////
+//
+//#ifdef APSTUDIO_INVOKED
+//GUIDELINES DESIGNINFO
+//BEGIN
+//    DLG_MAIN, DIALOG
+//    BEGIN
+//    END
+//
+//    DLG_LOGIN, DIALOG
+//    BEGIN
+//        LEFTMARGIN, 7
+//        RIGHTMARGIN, 303
+//        TOPMARGIN, 7
+//        BOTTOMMARGIN, 170
+//    END
+//END
+//#endif    // APSTUDIO_INVOKED
+//
+//
+///////////////////////////////////////////////////////////////////////////////
+////
+//// AFX_DIALOG_LAYOUT
+////
+//
+//DLG_LOGIN AFX_DIALOG_LAYOUT
+//BEGIN
+//    0
+//END
+//
+//#endif    // 中文(简体，中国) resources
+///////////////////////////////////////////////////////////////////////////////
+//
+//
+//
+//#ifndef APSTUDIO_INVOKED
+///////////////////////////////////////////////////////////////////////////////
+////
+//// Generated from the TEXTINCLUDE 3 resource.
+////
+//
+//
+///////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
