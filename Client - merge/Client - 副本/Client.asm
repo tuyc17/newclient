@@ -73,8 +73,8 @@ address sockaddr_in <>
 filedata db 32768 dup(?);文件地址的指针数组
 friendlist db 32768 dup (?);一个大字符串，有专门的函数用于解析
 friendlength dword ?;朋友个数
-nowname db 17 dup(0)
-nowid db 4 dup(0)
+nowname db 17 dup(?)
+nowid db 5 dup(0)
 ; 窗口切换信标
 flag	dword	FLAG_LOGIN
 		.const
@@ -84,7 +84,7 @@ szIP		db	'127.0.0.1',0
 szErrIP		db	'无效的服务器IP地址!',0
 szLoginOK	db	'登录成功！', 0
 szLoginFailed	db	'登录失败！', 0
-szLogonOK	db	'注册成功！', 0
+szLogonOK	db	'注册成功！你的ID为:', 000000000000000000000000
 szLogonFailed	db	'注册失败！', 0
 szAddOK		db	'添加好友成功！', 0
 szNotFind		db	'查无此人', 0
@@ -92,6 +92,7 @@ szFindFriend		db	'此人已是你的好友！', 0
 szFindSelf		db	'这是你本人。', 0
 testmesg db '1234',0
 zero dword 0
+spmode1 db '%s',0
 spmode2 db '%s%s',0
 spmode3 db '%s%s%s',0
 ; //////
@@ -116,7 +117,6 @@ szItem1	db	'friend1', 0
 szItem2	db	'friend2', 0
 ; 测试用用户昵称
 szNick	db	'tempname', 0
-myid db 20 dup(?)
 ; 测试用聊天记录路径以及文件打开方式以及尝试写入的信息
 szPath1		db	'ChatHistory/', 0
 szPath2		db	'.txt', 0
@@ -248,7 +248,7 @@ _Getmessage endp
 ;重命名
 _Rename proc newname 
 	local @str[1024]:byte
-	invoke crt_sprintf,addr @str,addr spmode3,addr RENAME,nowid,newname
+	invoke crt_sprintf,addr @str,addr spmode3,addr RENAME,addr nowid,newname
 	invoke _SendCommand ,addr @str
 	ret
 _Rename endp
@@ -270,10 +270,15 @@ ret
 _Login endp
 
 ;注册
-_Logon proc status
+_Logon proc status,id
+	local @tempok[1024]:byte
 	.if status==RID_SUCCESS
+		invoke crt_memmove,addr nowid,addr id,4
+		invoke crt_printf,addr nowid
 		;注册成功，显示提示窗口。修改szLogonOK以显示服务器返回的注册结果用户名
-		invoke MessageBox, hWinLogon, addr szLogonOK, NULL, MB_OK or MB_ICONINFORMATION
+		invoke  crt_memmove,addr @tempok,addr szLogonOK,sizeof szLogonOK
+		invoke  crt_strcat,addr @tempok,addr nowid
+		invoke MessageBox, hWinLogon, addr @tempok, NULL, MB_OK or MB_ICONINFORMATION
 
 		mov ebx, FLAG_LOGIN
 		mov flag, ebx
@@ -377,6 +382,7 @@ _SendPicture endp
 
 _GetName proc myname
 ;把myname传给全局变量名字
+	RET
 _GetName endp
 
 ;处理接收的消息
@@ -438,7 +444,9 @@ _DealWithCommand proc uses eax ebx edx edi esi command
 		.if eax==RID_LOGON
 			add esi,4
 			mov ebx,dword ptr [esi]
-			invoke _Logon,ebx
+			add esi,4
+			mov edx,dword ptr [esi]
+			invoke _Logon,ebx,edx
 			ret
 		.endif
 		.if eax==RID_GETNAME
@@ -599,8 +607,13 @@ _ProcDlgLogin	proc uses ebx edi esi hWnd, wMsg, wParam, lParam
 		.if ax == IDLOGIN
 			; 给服务器发登录用户名和密码
 			invoke crt_memset,addr @temppassword,93,16
+			
 			invoke GetDlgItemText, hWinLogin, IDC_USERNAME, addr @tempusername, sizeof @tempusername
 			invoke GetDlgItemText, hWinLogin, IDC_PASSWORD, addr @temppassword, sizeof @temppassword
+			push eax
+			invoke crt_memmove,addr nowid,addr @tempusername,4
+			invoke crt_printf,addr nowid
+			pop eax
 			lea edx,@temppassword
 			add edx,eax
 			.if eax!=16
