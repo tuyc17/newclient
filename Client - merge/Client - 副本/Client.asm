@@ -92,6 +92,8 @@ szFindFriend		db	'此人已是你的好友！', 0
 szFindSelf		db	'这是你本人。', 0
 testmesg db '1234',0
 zero dword 0
+szMark		db	' : ', 0
+szEmp		db	' ', 0
 spmode1 db '%s',0
 spmode2 db '%s%s',0
 spmode3 db '%s%s%s',0
@@ -113,19 +115,20 @@ szRegist	db	'注册', 0
 szWord1	db	'请输入用户名', 0
 szWord2	db	'请输入密码', 0
 ; 测试用朋友数据
-szItem1	db	'friend1', 0
-szItem2	db	'friend2', 0
+szItem1	db	'0001 : Jason、南琴', 0
+szItem2	db	'0002 : 上安打野勿念', 0
 ; 测试用用户昵称
 szNick	db	'tempname', 0
 ; 测试用聊天记录路径以及文件打开方式以及尝试写入的信息
 szPath1		db	'ChatHistory/', 0
 szPath2		db	'.txt', 0
-tempPath	db	'ChatHistory/history.txt', 0
+tempPath	db	'ChatHistory/histor.txt', 0
+szLine	db	'_', 0
 
 szMode_a	db	'a', 0
 szMode_rb db 'rb+',0
 
-szInfo	db	'文件写入成功！', 0
+;szInfo	db	'文件写入成功！', 0
 ; //////
 
 dwReturn	dd	-1
@@ -156,13 +159,15 @@ _SendCommand	proc uses eax ecx command
 		invoke	SetDlgItemText, hWinMain, IDC_TEXT,NULL
 		ret
 _SendCommand	endp
+
 ;加好友(自己调UI)
 _AddFriend proc status
 	.if status==RID_SUCCESS
 		;加好友操作成功
 		invoke MessageBox, hWinMain, addr szAddOK, NULL, MB_OK or MB_ICONINFORMATION
 		; ///////////////应该修改friend_list
-		; _SendCommandxxxx
+
+
 	.elseif status==RID_ADDFRIEND_1
 		;查无此人
 		invoke MessageBox, hWinMain, addr szNotFind, NULL, MB_OK or MB_ICONHAND	
@@ -178,13 +183,15 @@ _AddFriend endp
 
 ;解析所有好友
 _DealFriendList  proc uses eax ebx
-	local	@name[17]:byte
-	local	@id:dword
+	local	@name[17] : byte
+	local	@id : dword
+	local @item : byte
 	mov eax,offset friendlist
+	; 清空listbox	; 待测试/////////
+	invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_RESETCONTENT, 0, 0
 L1:
 	push ecx
-	;TODO:控件+id name
-	
+	; 在friendlist中显示朋友列表
 	mov ebx,[eax]
 	mov @id,ebx
 	add eax,4
@@ -193,8 +200,10 @@ L1:
 	add eax,16
 	mov ebx,offset zero
 	invoke  crt_memmove,eax,ebx,1
-
-	invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr @name 
+	; 合并得到id : name
+	invoke crt_sprintf, addr @item, addr spmode3, addr @id, szMark, @name
+	; 显示在listbox上
+	invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr @item
 	pop ecx
 	dec ecx
 	.if ecx==0 
@@ -233,7 +242,7 @@ _Getmessage proc uses eax id,len,message
 	;TODO:在这里把id好友发来的长度为len的消息message显示出来，写入ChatHistory/id.txt
 	; 格式：id1: words1 0 id2: words2 0 
 	; 获取文件路径：szPath1 + id + szPath2
-
+	; ////////////////////////////////
 	; 疑似需要转len的格式
 	invoke crt_atoi,addr len
 	mov	len,eax
@@ -511,6 +520,10 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 		local	@tempcommand[1024]:byte
 		local @tempname[1024] : byte
 		local @tempword[1024] : byte ; fread存储聊天记录的临时变量
+		local @tempitem[1024] : byte	; 获得鼠标双击的列表item
+		local @tempid : dword	; 被选中item的id
+		local @pathname[9] : byte
+		local @temppath[1024] : byte	; 历史记录地址
 		mov	eax,wMsg
 ;********************************************************************
 		.if	eax ==	WM_SOCKET
@@ -553,10 +566,29 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 				shr ebx, 16
 				.if bx == LBN_DBLCLK
 					; 获取好友的id和name
-					; invoke MessageBox, hWinMain, addr szAddOK, NULL, MB_OK or MB_ICONINFORMATION
+					invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_GETCURSEL, 0, 0
+					mov ebx, eax
+					invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_GETTEXT, ebx, addr @tempitem
+					; 分解@tempitem，提取前4位得到@tempid
+					mov ebx, dword ptr @tempitem
+					mov @tempid, ebx
+					lea eax, @tempid
+					add eax, 4
+					invoke crt_memmove, eax, addr zero, 1
+					; 获取历史记录地址
+					invoke crt_sprintf, addr @pathname, addr spmode3, addr nowid, addr szLine, addr @tempid
+					invoke crt_sprintf, addr @temppath, addr spmode3, addr szPath1,addr @pathname, addr szPath2
+
+					; invoke SetDlgItemText, hWinMain, IDC_SERVER, addr @temppath
 					; 显示对应的聊天记录
-					; 待检测////////////////测试版本
-					invoke crt_fopen, addr tempPath, addr szMode_rb
+					; 先写入一句话，避免该文件不存在
+					invoke crt_fopen, addr @temppath, addr szMode_a
+					push eax
+					invoke crt_fwrite, addr szEmp, type szEmp, 3, eax
+					pop eax
+					invoke crt_fclose, eax
+					 
+					invoke crt_fopen, addr @temppath, addr szMode_rb
 					push  eax
 					invoke crt_fread, addr @tempword, type @tempword, 1024, eax
 					pop eax
@@ -574,17 +606,19 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 			invoke	EndDialog, hWinMain, NULL
 ;********************************************************************
 		.elseif	eax ==	WM_INITDIALOG
-			invoke FindWindow, NULL, addr szTitle
-			mov hWinMain, eax
+			;invoke FindWindow, NULL, addr szTitle
+			;mov hWinMain, eax
 			invoke	SetDlgItemText, hWinMain, IDC_SERVER, addr szIP
+
+			push		hWnd
+			pop		hWinMain
 
 			; ////// 用户昵称初始化
 			invoke SetDlgItemText, hWinMain, IDC_NICKNAME, addr szNick
 			; 测试用朋友列表初始化
 			invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem1 
 			invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem2
-			push		hWnd
-			pop		hWinMain
+
 			call	_Init
 ;********************************************************************
 		.else
@@ -611,7 +645,7 @@ _ProcDlgLogin	proc uses ebx edi esi hWnd, wMsg, wParam, lParam
 			invoke GetDlgItemText, hWinLogin, IDC_USERNAME, addr @tempusername, sizeof @tempusername
 			invoke GetDlgItemText, hWinLogin, IDC_PASSWORD, addr @temppassword, sizeof @temppassword
 			push eax
-			invoke crt_memmove,addr nowid,addr @tempusername,4
+			invoke crt_memmove,addr nowid,addr @tempusername, 4
 			invoke crt_printf,addr nowid
 			pop eax
 			lea edx,@temppassword
