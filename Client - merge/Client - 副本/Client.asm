@@ -73,7 +73,7 @@ address sockaddr_in <>
 filedata db 32768 dup(?);文件地址的指针数组
 friendlist db 32768 dup (?);一个大字符串，有专门的函数用于解析
 friendlength dword ?;朋友个数
-nowname db 17 dup(?)
+nowname db 20 dup(0)
 nowid db 5 dup(0)
 ; 窗口切换信标
 flag	dword	FLAG_LOGIN
@@ -105,6 +105,7 @@ SENDPIC	db '0003',0
 RENAME	db '0004',0
 LOGIN	db '0005',0
 LOGON	db '0006',0
+GETNAME	db '0007',0
 
 ; 登录界面窗口名，用于提取句柄
 szTitle	db	'请登录', 0
@@ -255,12 +256,17 @@ _Rename endp
 
 ;登录
 _Login proc status
+	local @tempok[1024]:byte
 	.if status == RID_SUCCESS
 		;登陆成功
 		mov ebx, FLAG_MAIN
 		mov flag, ebx
+		invoke  crt_memmove,addr @tempok,addr GETNAME,sizeof GETNAME
+		invoke  crt_strcat,addr @tempok,addr nowid
+		invoke _SendCommand ,addr @tempok
 		invoke EndDialog, hWinLogin, NULL
 		invoke MessageBox, hWinLogin, addr szLoginOK, NULL, MB_OK or MB_ICONINFORMATION
+
 		; 窗口切换已在后面添加
 	.elseif status==RID_FAIL
 		;登陆失败
@@ -274,7 +280,6 @@ _Logon proc status,id
 	local @tempok[1024]:byte
 	.if status==RID_SUCCESS
 		invoke crt_memmove,addr nowid,addr id,4
-		invoke crt_printf,addr nowid
 		;注册成功，显示提示窗口。修改szLogonOK以显示服务器返回的注册结果用户名
 		invoke  crt_memmove,addr @tempok,addr szLogonOK,sizeof szLogonOK
 		invoke  crt_strcat,addr @tempok,addr nowid
@@ -380,8 +385,12 @@ _SendPicture endp
 ;发送命令
 
 
-_GetName proc myname
-;把myname传给全局变量名字
+_GetName proc uses eax ebx myname
+	invoke crt_memmove,addr nowname,myname,16
+	invoke crt_strchr,addr nowname,93
+	.if eax!=0
+		invoke crt_memmove,eax,addr zero,1
+	.endif
 	RET
 _GetName endp
 
@@ -432,7 +441,7 @@ _DealWithCommand proc uses eax ebx edx edi esi command
 		.if eax==RID_RENAME
 			add esi,4
 			mov ebx,esi
-			invoke _GetName,edx
+			invoke _GetName,ebx
 			ret
 		.endif
 		.if eax==RID_LOGIN
@@ -600,6 +609,7 @@ _ProcDlgLogin	proc uses ebx edi esi hWnd, wMsg, wParam, lParam
 	local	@tempusername[1024]: byte
 	local @temppassword[1024]: byte
 	local @str[1024]: byte
+	local @tempok[1024]: byte
 	mov eax, wMsg
 ;********************************************************************
 	.if eax == WM_COMMAND
@@ -612,7 +622,6 @@ _ProcDlgLogin	proc uses ebx edi esi hWnd, wMsg, wParam, lParam
 			invoke GetDlgItemText, hWinLogin, IDC_PASSWORD, addr @temppassword, sizeof @temppassword
 			push eax
 			invoke crt_memmove,addr nowid,addr @tempusername,4
-			invoke crt_printf,addr nowid
 			pop eax
 			lea edx,@temppassword
 			add edx,eax
@@ -626,7 +635,7 @@ _ProcDlgLogin	proc uses ebx edi esi hWnd, wMsg, wParam, lParam
 			mov ebx, FLAG_LOGON
 			mov flag, ebx
 			invoke EndDialog, hWinLogin, NULL
-			; invoke MessageBox, hWinLogin, addr szLoginOK, NULL, MB_OK or MB_ICONINFORMATION			
+					
 		.endif
 	.elseif	eax ==	WM_SOCKET
 			mov	eax,lParam
