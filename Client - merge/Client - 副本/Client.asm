@@ -77,6 +77,7 @@ friendlength dword ?;朋友个数
 nowname db 20 dup(0)
 nowid db 5 dup(0)
 peerid db 5 dup(0)
+peerid2 db 4 dup(0)
 ; 窗口切换信标
 flag	dword	FLAG_LOGIN
 		.const
@@ -165,43 +166,61 @@ _SendCommand	endp
 ;解析所有好友
 _DealFriendList  proc uses eax ebx
 	local	@name[17] : byte
-	local	@id : dword
-	local @item : byte
-	mov eax,offset friendlist
+	local   @item[1024] : byte
+	local   @id:dword
 	; 清空listbox	; 待测试/////////
+	push ecx
 	invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_RESETCONTENT, 0, 0
+	pop  ecx
+	mov eax,offset friendlist
 L1:
+	.if ecx==0
+		ret
+	.endif 
+	push eax
 	push ecx
 	; 在friendlist中显示朋友列表
+	
 	mov ebx,[eax]
 	mov @id,ebx
 	add eax,4
+	push eax
+	push eax
+	invoke  crt_memmove,addr peerid,addr @id,4
+	invoke  crt_memmove,addr peerid2,addr @id,4
+	invoke  crt_memset,addr @name,0,17
+	pop eax
 	invoke  crt_memmove,addr @name,eax,16
-	lea eax,@name
-	add eax,16
-	mov ebx,offset zero
-	invoke  crt_memmove,eax,ebx,1
+	invoke crt_strchr,addr @name,93
+	.if eax!=0
+		invoke crt_memmove,eax,addr zero,1
+	.endif
+	pop eax
 	; 合并得到id : name
-	invoke crt_sprintf, addr @item, addr spmode3, addr @id, szMark, @name
+	invoke crt_sprintf, addr @item, addr spmode3, addr peerid2, addr szMark, addr @name
 	; 显示在listbox上
 	invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr @item
 	pop ecx
+	pop eax
+	add eax,20
 	dec ecx
 	.if ecx==0 
 		ret
 	.endif
-
+	
 	jmp L1
 	ret
 _DealFriendList endp
 
 ;加好友
 _AddFriend proc status
+	local @tempgetlist[50]:byte
 	.if status==RID_SUCCESS
 		;加好友操作成功
+		invoke  crt_memmove,addr @tempgetlist,addr GETFRIEND,sizeof GETFRIEND
+		invoke  crt_strcat,addr @tempgetlist,addr nowid
+		invoke _SendCommand ,addr @tempgetlist
 		invoke MessageBox, hWinMain, addr szAddOK, NULL, MB_OK or MB_ICONINFORMATION
-		; 刷新friend_list ; 待测试
-		invoke _DealFriendList
 	.elseif status==RID_ADDFRIEND_1
 		;查无此人
 		invoke MessageBox, hWinMain, addr szNotFind, NULL, MB_OK or MB_ICONHAND	
@@ -271,8 +290,10 @@ _Rename endp
 ;登录
 _Login proc status
 	local @tempok[1024]:byte
+	local @tempgetlist[1024]:byte
 	.if status == RID_SUCCESS
 		;登陆成功
+
 		mov ebx, FLAG_MAIN
 		mov flag, ebx
 		invoke  crt_memmove,addr @tempok,addr GETNAME,sizeof GETNAME
@@ -280,7 +301,6 @@ _Login proc status
 		invoke _SendCommand ,addr @tempok
 		invoke EndDialog, hWinLogin, NULL
 		invoke MessageBox, hWinLogin, addr szLoginOK, NULL, MB_OK or MB_ICONINFORMATION
-
 		; 窗口切换已在后面添加
 	.elseif status==RID_FAIL
 		;登陆失败
@@ -546,6 +566,7 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 		local @temppath[1024] : byte	; 历史记录地址
 		local @newfriend[1024] : byte	; 搜寻新好友的id
 		local @tempdw:dword
+		local @tempgetlist[1024] : byte
 
 		mov	eax,wMsg
 ;********************************************************************
@@ -646,10 +667,12 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 			; ////// 用户昵称初始化
 			invoke SetDlgItemText, hWinMain, IDC_NICKNAME, addr nowname
 			; 测试用朋友列表初始化
-			invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem1 
-			invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem2
-
+			;invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem1 
+			;invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem2
 			call	_Init
+			invoke  crt_memmove,addr @tempgetlist,addr GETFRIEND,sizeof GETFRIEND
+			invoke  crt_strcat,addr @tempgetlist,addr nowid
+			invoke _SendCommand ,addr @tempgetlist
 ;********************************************************************
 		.else
 			mov	eax,FALSE
