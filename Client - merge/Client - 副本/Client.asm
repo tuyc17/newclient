@@ -22,6 +22,7 @@ DLG_MAIN	equ	1000
 DLG_LOGIN	equ	1001
 DLG_LOGON		equ	1002
 
+IDC_ADD		equ		1005
 IDC_FRIENDLIST equ 1006
 IDC_SERVER	equ	2000
 IDC_INFO	equ	2001
@@ -132,9 +133,6 @@ szLine	db	'_', 0
 szMode_a	db	'a', 0
 szMode_rb db 'rb+',0
 
-;szInfo	db	'文件写入成功！', 0
-; //////
-
 dwReturn	dd	-1
 testcommand db  '12345678',0
 
@@ -164,26 +162,7 @@ _SendCommand	proc uses eax ecx command
 		ret
 _SendCommand	endp
 
-;加好友(自己调UI)
-_AddFriend proc status
-	.if status==RID_SUCCESS
-		;加好友操作成功
-		invoke MessageBox, hWinMain, addr szAddOK, NULL, MB_OK or MB_ICONINFORMATION
-		; ///////////////应该修改friend_list
 
-
-	.elseif status==RID_ADDFRIEND_1
-		;查无此人
-		invoke MessageBox, hWinMain, addr szNotFind, NULL, MB_OK or MB_ICONHAND	
-	.elseif status==RID_ADDFRIEND_2
-		;此人已是你的好友
-		invoke MessageBox, hWinMain, addr szFindFriend, NULL, MB_OK or MB_ICONWARNING
-	.elseif status==RID_ADDFRIEND_3
-		;此人是客户端自身
-		invoke MessageBox, hWinMain, addr szFindSelf, NULL, MB_OK or MB_ICONWARNING
-	.endif
-	ret
-_AddFriend endp
 
 ;解析所有好友
 _DealFriendList  proc uses eax ebx
@@ -217,7 +196,25 @@ L1:
 	jmp L1
 	ret
 _DealFriendList endp
-
+;加好友
+_AddFriend proc status
+	.if status==RID_SUCCESS
+		;加好友操作成功
+		invoke MessageBox, hWinMain, addr szAddOK, NULL, MB_OK or MB_ICONINFORMATION
+		; 刷新friend_list ; 待测试
+		invoke _DealFriendList
+	.elseif status==RID_ADDFRIEND_1
+		;查无此人
+		invoke MessageBox, hWinMain, addr szNotFind, NULL, MB_OK or MB_ICONHAND	
+	.elseif status==RID_ADDFRIEND_2
+		;此人已是你的好友
+		invoke MessageBox, hWinMain, addr szFindFriend, NULL, MB_OK or MB_ICONWARNING
+	.elseif status==RID_ADDFRIEND_3
+		;此人是客户端自身
+		invoke MessageBox, hWinMain, addr szFindSelf, NULL, MB_OK or MB_ICONWARNING
+	.endif
+	ret
+_AddFriend endp
 ;查阅好友
 _GetFriend proc	uses eax  ebx	num,list
 	invoke crt_atoi,addr num
@@ -236,21 +233,26 @@ _GetFriend endp
 
 ;删除好友
 _DeleteFriend proc id
-	; _SendCommandxxxx
-	; ///////////////应该修改friend_list
+	local @tempcommand[1024] : byte
+	invoke crt_sprintf,addr @tempcommand, addr spmode3, addr DELFRIEND, nowid, id
+	invoke _SendCommand ,addr @tempcommand
 	ret
 _DeleteFriend endp
 
 ;接收消息
-_Getmessage proc uses eax id,len,message
-	;TODO:在这里把id好友发来的长度为len的消息message显示出来，写入ChatHistory/id.txt
-	; 格式：id1: words1 0 id2: words2 0 
-	; 获取文件路径：szPath1 + id + szPath2
-	; ////////////////////////////////
-	; 疑似需要转len的格式
-	invoke crt_atoi,addr len
+_Getmessage proc uses eax id, len, message
+	; 把id好友发来的长度为len的消息message写入ChatHistory/下的本地文件
+	local @pathname[1024] : byte
+	local @temppath[1024] : byte
+	
+	; 获取历史记录地址
+	invoke crt_sprintf, addr @pathname, addr spmode3, addr nowid, addr szLine, addr id
+	invoke crt_sprintf, addr @temppath, addr spmode3, addr szPath1,addr @pathname, addr szPath2
+
+	; 转len的格式
+	invoke crt_atoi, addr len
 	mov	len,eax
-	invoke crt_fopen, addr tempPath, addr szMode_a
+	invoke crt_fopen, addr @temppath, addr szMode_a
 	push eax
 	invoke crt_fwrite, addr message, type message, len, eax
 	pop eax
@@ -362,6 +364,7 @@ L3:	invoke	RtlZeroMemory,addr szReadBuffer,sizeof szReadBuffer
 	.endif
 	ret
 _Getpicture endp
+
 ;发送图片消息
 _SendPicture  proc uses eax ebx ecx picpath,hisid
 	local @fp
@@ -403,7 +406,7 @@ _GetName proc uses eax ebx myname
 	.if eax!=0
 		invoke crt_memmove,eax,addr zero,1
 	.endif
-	RET
+	ret
 _GetName endp
 
 ;处理接收的消息
@@ -530,13 +533,15 @@ _Init		endp
 ;	主窗口程序
 _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 		local	@tempcommand[1024]:byte
+		local @addcommand[1024] : byte
 		local @tempname[1024] : byte
 		local @tempmes[1024] : byte
 		local @tempword[1024] : byte ; fread存储聊天记录的临时变量
 		local @tempitem[1024] : byte	; 获得鼠标双击的列表item
-		local @tempid : dword	; 被选中item的id
+		local @tempid : dword	; 被选中item的id		; 将被放置于全局变量中
 		local @pathname[9] : byte
 		local @temppath[1024] : byte	; 历史记录地址
+		local @newfriend[1024] : byte	; 搜寻新好友的id
 		local @tempdw:dword
 
 		mov	eax,wMsg
@@ -571,16 +576,16 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 				lea edx,@tempname
 				add edx,eax
 				.if eax!=16
-				invoke crt_memset,edx,93,1
+					invoke crt_memset,edx,93,1
 				.endif
 				invoke _Rename, addr @tempname
 			; “添加好友”按钮
 			.elseif ax == IDADDFRIEND
-				;invoke crt_sprintf,addr @str,addr spmode3,addr GETFRIEND,nowid,hisid
-				;invoke _SendCommand ,addr @str
-				; 读取好友ID
-				; //TODO
-
+				; 读取IDC_ADD中的ID
+				invoke GetDlgItemText, hWinMain, IDC_ADD, addr @newfriend, sizeof @newfriend
+				; 发出command
+				invoke crt_sprintf,addr @addcommand, addr spmode3, addr ADDFRIEND, nowid, @newfriend
+				invoke _SendCommand ,addr @addcommand
 			; “好友列表”信息
 			.elseif ax == IDC_FRIENDLIST
 				; 双击事件
@@ -629,8 +634,6 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 			invoke	EndDialog, hWinMain, NULL
 ;********************************************************************
 		.elseif	eax ==	WM_INITDIALOG
-			;invoke FindWindow, NULL, addr szTitle
-			;mov hWinMain, eax
 			invoke	SetDlgItemText, hWinMain, IDC_SERVER, addr szIP
 
 			push		hWnd
