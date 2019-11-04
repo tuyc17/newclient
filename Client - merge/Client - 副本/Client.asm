@@ -241,7 +241,7 @@ _DeleteFriend endp
 
 ;接收消息
 _Getmessage proc uses eax id, len, message
-	; 把id好友发来的长度为len的消息message写入ChatHistory/下的本地文件
+	; 把id好友发来的长度为len的消?息message写入ChatHistory/下的本地文件
 	local @pathname[1024] : byte
 	local @temppath[1024] : byte
 	
@@ -406,11 +406,13 @@ _GetName proc uses eax ebx myname
 	.if eax!=0
 		invoke crt_memmove,eax,addr zero,1
 	.endif
+	invoke SetDlgItemText, hWinMain, IDC_NICKNAME, addr nowname
 	ret
 _GetName endp
 
 ;处理接收的消息
 _DealWithCommand proc uses eax ebx edx edi esi command
+		invoke crt_printf,command
 		mov esi,command
 		mov eax,[esi]
 		.if eax==RID_ADDFRIEND
@@ -640,7 +642,7 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 			pop		hWinMain
 
 			; ////// 用户昵称初始化
-			invoke SetDlgItemText, hWinMain, IDC_NICKNAME, addr szNick
+			invoke SetDlgItemText, hWinMain, IDC_NICKNAME, addr nowname
 			; 测试用朋友列表初始化
 			invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem1 
 			invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_ADDSTRING, 0, addr szItem2
