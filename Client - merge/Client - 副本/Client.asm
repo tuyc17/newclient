@@ -76,6 +76,7 @@ friendlist db 32768 dup (?);一个大字符串，有专门的函数用于解析
 friendlength dword ?;朋友个数
 nowname db 20 dup(0)
 nowid db 5 dup(0)
+peerid db 5 dup(0)
 ; 窗口切换信标
 flag	dword	FLAG_LOGIN
 		.const
@@ -98,6 +99,7 @@ szEmp		db	' ', 0
 spmode1 db '%s',0
 spmode2 db '%s%s',0
 spmode3 db '%s%s%s',0
+spmodeformes db '%s%s%s%0d%s',0
 ; //////
 ADDFRIEND db '0000',0
 GETFRIEND db '000a',0
@@ -538,6 +540,7 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 		local @pathname[9] : byte
 		local @temppath[1024] : byte	; 历史记录地址
 		local @newfriend[1024] : byte	; 搜寻新好友的id
+		local @tempdw:dword
 		mov	eax,wMsg
 ;********************************************************************
 		.if	eax ==	WM_SOCKET
@@ -553,9 +556,13 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 			mov	eax,wParam
 			; “发送”按钮
 			.if	ax ==	IDOK
+				push eax
+				
 				invoke	GetDlgItemText, hWinMain, IDC_TEXT, addr @tempcommand, sizeof @tempcommand
 
-				invoke	_SendCommand,addr @tempcommand
+				invoke crt_sprintf,addr @tempname,addr spmodeformes,addr SENDMES,addr nowid,addr peerid,@tempdw,addr @tempcommand
+				invoke	_SendCommand,addr @tempname
+				pop eax
 			; “重命名”按钮
 			.elseif ax == IDRENAME
 				invoke crt_memset,addr @tempname,93,16		
@@ -589,6 +596,7 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 					lea eax, @tempid
 					add eax, 4
 					invoke crt_memmove, eax, addr zero, 1
+					invoke crt_memmove,addr peerid,addr @tempid,5
 					; 获取历史记录地址
 					invoke crt_sprintf, addr @pathname, addr spmode3, addr nowid, addr szLine, addr @tempid
 					invoke crt_sprintf, addr @temppath, addr spmode3, addr szPath1,addr @pathname, addr szPath2
