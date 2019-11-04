@@ -1,4 +1,4 @@
-; merge版
+; 极限版
 .386
 .model flat, stdcall
 option casemap :none   
@@ -618,6 +618,8 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 				mov ebx, eax
 				shr ebx, 16
 				.if bx == LBN_DBLCLK
+					; 首先置空@tempword
+					invoke crt_memset, addr @tempword, 0, 1024
 					; 获取好友的id和name
 					invoke SendDlgItemMessage, hWinMain, IDC_FRIENDLIST, LB_GETCURSEL, 0, 0
 					mov ebx, eax
@@ -635,11 +637,11 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 
 					; invoke SetDlgItemText, hWinMain, IDC_SERVER, addr @temppath
 					; 显示对应的聊天记录
-					; 先写入一句话，避免该文件不存在
+					; 先打开一次文件，避免该文件不存在
 					invoke crt_fopen, addr @temppath, addr szMode_a
-					push eax
-					invoke crt_fwrite, addr szEmp, type szEmp, 3, eax
-					pop eax
+					;push eax
+					;invoke crt_fwrite, addr szEmp, type szEmp, 3, eax
+					;pop eax
 					invoke crt_fclose, eax
 					 
 					invoke crt_fopen, addr @temppath, addr szMode_rb
