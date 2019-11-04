@@ -10,8 +10,8 @@
 #define DLG_LOGIN						1001
 #define DLG_LOGON					1002
 
-#define IDC_BUTTON1                     1005 //?
-#define IDC_FRIENDLIST                       1006
+#define IDC_ADD							1005
+#define IDC_FRIENDLIST				1006
 #define IDC_SERVER						2000
 #define IDC_INFO							2001
 #define IDC_TEXT							2002
