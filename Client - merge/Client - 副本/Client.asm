@@ -95,10 +95,11 @@ testmesg db '1234',0
 zero dword 0
 szMark		db	' : ', 0
 szEmp		db	' ', 0
+spmodetest db '%04d',0
 spmode1 db '%s',0
 spmode2 db '%s%s',0
 spmode3 db '%s%s%s',0
-spmodeformes db '%s%s%s%0d%s',0
+spmodeformes db '%s%s%s%s%s',0
 ; //////
 ADDFRIEND db '0000',0
 GETFRIEND db '000a',0
@@ -530,12 +531,14 @@ _Init		endp
 _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 		local	@tempcommand[1024]:byte
 		local @tempname[1024] : byte
+		local @tempmes[1024] : byte
 		local @tempword[1024] : byte ; fread存储聊天记录的临时变量
 		local @tempitem[1024] : byte	; 获得鼠标双击的列表item
 		local @tempid : dword	; 被选中item的id
 		local @pathname[9] : byte
 		local @temppath[1024] : byte	; 历史记录地址
 		local @tempdw:dword
+
 		mov	eax,wMsg
 ;********************************************************************
 		.if	eax ==	WM_SOCKET
@@ -555,8 +558,11 @@ _ProcDlgMain	proc	uses ebx edi esi hWnd,wMsg,wParam,lParam
 				
 				invoke	GetDlgItemText, hWinMain, IDC_TEXT, addr @tempcommand, sizeof @tempcommand
 
-				invoke crt_sprintf,addr @tempname,addr spmodeformes,addr SENDMES,addr nowid,addr peerid,@tempdw,addr @tempcommand
-				invoke	_SendCommand,addr @tempname
+				
+				mov @tempdw,eax
+				invoke crt_sprintf,addr @tempname,addr spmodetest,@tempdw
+				invoke crt_sprintf,addr @tempmes,addr spmodeformes,addr SENDMES,addr nowid,addr peerid,addr @tempname,addr @tempcommand
+				invoke	_SendCommand,addr @tempmes
 				pop eax
 			; “重命名”按钮
 			.elseif ax == IDRENAME
